@@ -13,14 +13,19 @@ public class KafkaTransactionListener {
 
     private final UserRepository userRepository;
     private final TransactionRepository transactionRepository;
+    private final IncentiveQuerier incentiveQuerier;
 
     public KafkaTransactionListener(
             UserRepository userRepository,
-            TransactionRepository transactionRepository) {
+            TransactionRepository transactionRepository,
+            IncentiveQuerier incentiveQuerier) {
 
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
+        this.incentiveQuerier = incentiveQuerier;
     }
+
+   
 
     @KafkaListener(
             topics = "${general.kafka-topic}",
@@ -40,6 +45,9 @@ public class KafkaTransactionListener {
         System.out.println("Recipient: " +
         (recipient != null ? recipient.getName() : "null"));
 
+        float incentiveAmount =
+        incentiveQuerier.query(transaction).getAmount();
+
 
         if (sender == null || recipient == null) {
             return;
@@ -54,9 +62,20 @@ public class KafkaTransactionListener {
          );
 
         recipient.setBalance(
-        recipient.getBalance() + transaction.getAmount()
-        );
+        recipient.getBalance()
+                + transaction.getAmount()
+                + incentiveAmount
+);
 
+         if (sender.getName().equals("wilbur")) {
+    System.out.println("WILBUR BALANCE = " + sender.getBalance());
+}
+
+if (recipient.getName().equals("wilbur")) {
+    System.out.println("WILBUR BALANCE = " + recipient.getBalance());
+}
+
+ 
             userRepository.save(sender);
             userRepository.save(recipient);
 
@@ -72,8 +91,13 @@ public class KafkaTransactionListener {
               new TransactionRecord(
                 sender,
                 recipient,
-                transaction.getAmount()
+                transaction.getAmount(),
+                incentiveAmount
             );
+
+            System.out.println(
+               recipient.getName() + " -> " + recipient.getBalance()
+           );
 
             transactionRepository.save(record);
            
