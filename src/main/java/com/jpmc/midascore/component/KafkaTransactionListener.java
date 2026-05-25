@@ -34,6 +34,12 @@ public class KafkaTransactionListener {
         UserRecord recipient =
         userRepository.findById(transaction.getRecipientId());
 
+        System.out.println("Sender: " +
+        (sender != null ? sender.getName() : "null"));
+
+        System.out.println("Recipient: " +
+        (recipient != null ? recipient.getName() : "null"));
+
 
         if (sender == null || recipient == null) {
             return;
@@ -54,7 +60,15 @@ public class KafkaTransactionListener {
             userRepository.save(sender);
             userRepository.save(recipient);
 
-           TransactionRecord record =
+            if ("waldorf".equals(sender.getName())) {
+                System.out.println("WALDORF BALANCE = " + sender.getBalance());
+              }
+
+            if ("waldorf".equals(recipient.getName())) {
+                System.out.println("WALDORF BALANCE = " + recipient.getBalance());
+              }
+
+             TransactionRecord record =
               new TransactionRecord(
                 sender,
                 recipient,
@@ -62,6 +76,6 @@ public class KafkaTransactionListener {
             );
 
             transactionRepository.save(record);
-
+           
     }
 }
