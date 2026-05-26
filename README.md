@@ -1,244 +1,274 @@
-JPMorgan Chase Forage – Midas Core Project
-Overview
+# Midas Core – JPMorgan Chase Software Engineering Virtual Experience
 
-This project was completed as part of the JPMorgan Chase Software Engineering Virtual Experience Program (Forage).
+A Spring Boot–based financial transaction processing system developed as part of the JPMorgan Chase Software Engineering Virtual Experience Program on Forage.
 
-The goal of the project was to enhance and extend the Midas Core transaction processing system through a series of progressively complex engineering tasks involving:
+The application processes financial transactions through Apache Kafka, validates account activity, persists transaction records, integrates with an external incentive service, updates user balances, and exposes account balance information through a REST API.
 
-Apache Kafka
-Spring Boot
-REST APIs
-H2 Database
-JPA/Hibernate
-Event-driven architecture
-Microservice communication
+---
 
-The application processes financial transactions received through Kafka, validates them, persists them to a database, integrates with an external Incentive API, and exposes account balances through a REST endpoint.
+## Overview
 
-Tech Stack
-Java 17
-Spring Boot
-Spring Kafka
-Spring Data JPA
-Hibernate
-H2 Database
-Maven
-REST APIs
-Apache Kafka
-Project Architecture
-Producer
-   |
-   v
-Kafka Topic (transactions)
-   |
-   v
-KafkaTransactionListener
-   |
-   +--> Validate Transaction
-   |
-   +--> Query Incentive API
-   |
-   +--> Update User Balances
-   |
-   +--> Persist Transaction
-   |
-   v
-H2 Database
-   |
-   v
-Balance REST API
-Tasks Completed
-Task 1 – Kafka Consumer Integration
-Objective
+Midas Core is an event-driven transaction processing service that receives transactions from Kafka, validates business rules, stores transaction history in a relational database, communicates with an external Incentive API, and maintains accurate user balances.
 
-Configure Midas Core to consume transaction events from Kafka.
+The system demonstrates modern backend development concepts including messaging systems, REST APIs, database persistence, and microservice communication.
 
-Implementation
-Configured Kafka consumer.
-Created Kafka listener using @KafkaListener.
-Verified transaction messages were successfully received from the configured topic.
-Key Concepts
-Event-driven architecture
-Kafka consumers
-Spring Kafka
-Task 2 – Kafka Topic Configuration
-Objective
+---
 
-Ensure Midas Core correctly subscribes to the required Kafka topic.
+## Features
 
-Implementation
-Updated Kafka topic configuration inside application.yml.
-Fixed incorrect topic name.
-Verified successful message consumption.
-Key Learning
+- Real-time transaction processing using Apache Kafka
+- Transaction validation and balance verification
+- H2 database integration with Spring Data JPA
+- Persistent transaction history storage
+- Incentive API integration using REST communication
+- Automatic balance updates for users
+- REST endpoint for balance retrieval
+- Event-driven architecture
 
-Configuration mistakes can completely block event processing even when application code is correct.
+---
 
-Task 3 – Database Integration and Transaction Validation
-Objective
+## Architecture
 
-Persist valid transactions and update user balances.
+```text
+Kafka Producer
+      |
+      v
++----------------------+
+|   Kafka Topic        |
+|   transactions       |
++----------------------+
+      |
+      v
++----------------------+
+| Kafka Transaction    |
+| Listener             |
++----------------------+
+      |
+      +--------------------+
+      |                    |
+      v                    v
+Transaction          Incentive API
+Validation           (REST Service)
+      |                    |
+      +---------+----------+
+                |
+                v
+        Database Updates
+                |
+                v
+          H2 Database
+                |
+                v
+        Balance REST API
+```
 
-Business Rules
+---
 
-A transaction is valid only if:
+## Technology Stack
 
-Sender exists
-Recipient exists
-Sender balance is greater than or equal to transaction amount
-Implementation
+| Technology | Purpose |
+|------------|----------|
+| Java 17 | Core Development |
+| Spring Boot | Application Framework |
+| Apache Kafka | Event Streaming |
+| Spring Kafka | Kafka Integration |
+| Spring Data JPA | Database Access |
+| Hibernate | ORM |
+| H2 Database | Persistence Layer |
+| Maven | Dependency Management |
+| REST APIs | Service Communication |
 
-Created:
+---
 
-TransactionRecord
+## Core Components
 
-entity containing:
+### Kafka Transaction Listener
 
-sender
-recipient
-amount
+Consumes transaction events from Kafka topics and initiates transaction processing.
 
-Implemented:
+### Transaction Validation Engine
 
-User lookup
-Balance validation
-Balance updates
-Transaction persistence
-JPA Relationships
-UserRecord (1)
-    |
-    |----< TransactionRecord
+Transactions are processed only when:
 
-Both sender and recipient maintain a many-to-one relationship with users.
+- Sender exists
+- Recipient exists
+- Sender has sufficient balance
 
-Key Concepts
-JPA Entities
-Entity Relationships
-Data Persistence
-Transaction Validation
-Task 4 – Incentive API Integration
-Objective
+Invalid transactions are discarded without modifying stored data.
 
-Integrate Midas Core with an external Incentive API.
+### Database Persistence
 
-Implementation
+Implemented using Spring Data JPA and Hibernate.
 
-Created:
+#### UserRecord
 
-IncentiveQuerier
+Stores:
 
-using:
+- User ID
+- User Name
+- Account Balance
 
-RestTemplate
+#### TransactionRecord
 
-Workflow:
+Stores:
 
-Receive transaction.
-Validate transaction.
-Call Incentive API.
-Receive incentive amount.
-Store incentive with transaction.
-Add incentive to recipient balance.
-Example
+- Sender
+- Recipient
+- Transaction Amount
+- Incentive Amount
 
-Transaction:
+Maintains proper entity relationships between users and transactions.
 
-Sender -> 100
-Recipient -> +100
-Incentive -> +5
+### Incentive API Integration
 
-Result:
+Valid transactions are sent to an external Incentive API.
 
-Sender loses 100
-Recipient gains 105
-Key Concepts
-REST Clients
-Spring RestTemplate
-Service-to-Service Communication
-JSON Serialization
-Task 5 – Balance REST API
-Objective
+The returned incentive amount:
 
-Expose account balances through a REST endpoint.
+- Is stored with the transaction
+- Is credited to the recipient
+- Does not reduce the sender balance
 
-Endpoint
+### Balance REST API
+
+Provides balance information for users through a REST endpoint.
+
+---
+
+## API Endpoint
+
+### Get User Balance
+
+```http
 GET /balance?userId={id}
-Example
+```
+
+### Example Request
+
+```http
 GET /balance?userId=1
+```
 
-Response:
+### Example Response
 
+```json
 {
   "amount": 1250.75
 }
+```
 
-If user does not exist:
+If the user does not exist:
 
+```json
 {
   "amount": 0
 }
-Implementation
+```
 
-Created:
+---
 
-BalanceController
+## Database Model
 
-Configured application to run on:
+### UserRecord
 
-Port 33400
-Key Concepts
-Spring MVC
-REST Controllers
-Request Parameters
-JSON Responses
-Database Model
-UserRecord
-Field	Type
-id	Long
-name	String
-balance	float
-TransactionRecord
-Field	Type
-id	Long
-sender	UserRecord
-recipient	UserRecord
-amount	float
-incentive	float
-How to Run
-Start Incentive API
+| Field | Type |
+|---------|---------|
+| id | Long |
+| name | String |
+| balance | Float |
+
+### TransactionRecord
+
+| Field | Type |
+|---------|---------|
+| id | Long |
+| sender | UserRecord |
+| recipient | UserRecord |
+| amount | Float |
+| incentive | Float |
+
+---
+
+## Running the Project
+
+### Start the Incentive Service
+
+```bash
 java -jar services/transaction-incentive-api.jar
-Run Midas Core
+```
+
+### Run Midas Core
+
+```bash
 ./mvnw spring-boot:run
-Run Individual Tasks
+```
+
+Application runs on:
+
+```text
+http://localhost:33400
+```
+
+---
+
+## Testing
+
+Run individual task validations:
+
+```bash
 ./mvnw test -Dtest=TaskOneTests
+```
+
+```bash
 ./mvnw test -Dtest=TaskTwoTests
+```
+
+```bash
 ./mvnw test -Dtest=TaskThreeTests
+```
+
+```bash
 ./mvnw test -Dtest=TaskFourTests
+```
+
+```bash
 ./mvnw test -Dtest=TaskFiveTests
-Key Engineering Learnings
-Building Kafka consumers using Spring Kafka
-Event-driven system design
-Integrating relational databases with Spring Data JPA
-Modeling entity relationships
-Consuming external REST APIs
-Designing RESTful endpoints
-Debugging distributed systems
-Working with financial transaction validation logic
-End-to-end transaction processing pipelines
-Outcome
+```
 
-Successfully completed all five tasks of the JPMorgan Chase Forage Midas Core project by implementing:
+---
 
-✅ Kafka transaction processing
+## Key Concepts Demonstrated
 
-✅ Topic configuration and event consumption
+- Event-Driven Architecture
+- Apache Kafka Consumers
+- REST API Development
+- Service-to-Service Communication
+- Spring Boot Development
+- Database Design
+- JPA Entity Relationships
+- Transaction Processing Systems
+- Financial Data Validation
+- Backend System Integration
 
-✅ H2 database persistence
+---
 
-✅ Transaction validation and balance updates
+## Project Outcome
 
-✅ Incentive API integration
+Successfully implemented an end-to-end financial transaction processing workflow capable of:
 
-✅ REST API for balance retrieval
+- Consuming transactions from Kafka
+- Validating business rules
+- Persisting transaction data
+- Integrating with external services
+- Updating user balances
+- Providing balance lookup through a REST API
 
-✅ End-to-end tested financial transaction workflow
+This project demonstrates practical experience with enterprise Java development patterns commonly used in modern financial systems.
+
+---
+
+## Author
+
+**Sai Rakesh Reddy**
+
+JPMorgan Chase Software Engineering Virtual Experience (Forage)
